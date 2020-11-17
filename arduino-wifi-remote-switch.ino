@@ -17,7 +17,12 @@ void updateValue(int val) {
   value = val;
 }
 
-int ledPin = 13; // GPIO13---D7 of NodeMCU
+// control 1 in D6 - GPIO12 ?
+// control 2 in D5 - GPIO14 ?
+
+// int ledPin = 13; // GPIO13---D7 of NodeMCU
+int control1Pin = 12;
+int control2Pin = 14;
 
 void setup() {
   DebugBegin(115200);
@@ -45,6 +50,8 @@ void setup() {
   MDNS.addService(SERVICE_NAME, "tcp", PORT);
 
   pinMode(ledPin, OUTPUT);
+  pinMode(control1Pin, OUTPUT);
+  pinMode(control2Pin, OUTPUT);
 
   // ota handling
 
@@ -88,17 +95,33 @@ void setup() {
     server.send(200, "text/json", "{\"status\":\"OK\"}");
   });
 
-  server.on("/on", []() {
+  server.on("a/on", []() {
     // turn on device
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(control1Pin, HIGH);
     updateValue(HIGH);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
   });
 
-  server.on("/off", []() {
+  server.on("a/off", []() {
     // turn off device
-    digitalWrite(ledPin, LOW);
+    digitalWrite(control1Pin, LOW);
+    updateValue(LOW);
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
+  });
+
+  server.on("b/on", []() {
+    // turn on device
+    digitalWrite(control2Pin, HIGH);
+    updateValue(HIGH);
+    server.sendHeader("Access-Control-Allow-Origin", "*");
+    server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
+  });
+
+  server.on("b/off", []() {
+    // turn off device
+    digitalWrite(control2Pin, LOW);
     updateValue(LOW);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
@@ -119,14 +142,26 @@ void setup() {
       "}," +
       "\"api\":[" +
         "{" +
-          "\"label\": \"light\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/on\"," +
+          "\"label\": \"light-a\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local/a/on\"," +
           "\"path\": \"/on\"," +
           "\"desc\": \"turn on kitchen light\"" +
         "}, " +
         "{" +
-          "\"label\": \"light\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/off\"," +
+          "\"label\": \"light-a\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local/a/off\"," +
+          "\"path\": \"/off\"," +
+          "\"desc\": \"turn off kitchen light\"" +
+        "}, " +
+        "{" +
+          "\"label\": \"light-b\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local/b/on\"," +
+          "\"path\": \"/on\"," +
+          "\"desc\": \"turn on kitchen light\"" +
+        "}, " +
+        "{" +
+          "\"label\": \"light-b\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local/b/off\"," +
           "\"path\": \"/off\"," +
           "\"desc\": \"turn off kitchen light\"" +
         "}, " +

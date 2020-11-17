@@ -1,4 +1,4 @@
 
-#define LOCATION "kitchen"
+#define LOCATION "master-room"
 
-#define HOSTNAME "kitchen-light-v2"
+#define HOSTNAME "master-room"
