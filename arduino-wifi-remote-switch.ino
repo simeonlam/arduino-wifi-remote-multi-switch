@@ -28,6 +28,15 @@ void updateValueB(int val) {
 int control1Pin = 12;
 int control2Pin = 14;
 
+char* labelA = "light-a";
+char* labelB = "light-b";
+char* onState = "on";
+char* offState = "off";
+char* aOn = "/light-a/on";
+char* aOff = "/light-a/off";
+char* bOn = "/light-b/on";
+char* bOff = "/light-b/off";
+
 void setup() {
   DebugBegin(115200);
   WiFi.hostname(HOSTNAME);      // DHCP Hostname (useful for finding device for static lease)
@@ -99,7 +108,7 @@ void setup() {
     server.send(200, "text/json", "{\"status\":\"OK\"}");
   });
 
-  server.on("/a/on", []() {
+  server.on(aOn, []() {
     // turn on device
     digitalWrite(control1Pin, HIGH);
     updateValueA(HIGH);
@@ -107,7 +116,7 @@ void setup() {
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
   });
 
-  server.on("/a/off", []() {
+  server.on(aOff, []() {
     // turn off device
     digitalWrite(control1Pin, LOW);
     updateValueA(LOW);
@@ -115,7 +124,7 @@ void setup() {
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
   });
 
-  server.on("/b/on", []() {
+  server.on(bOn, []() {
     // turn on device
     digitalWrite(control2Pin, HIGH);
     updateValueB(HIGH);
@@ -123,7 +132,7 @@ void setup() {
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
   });
 
-  server.on("/b/off", []() {
+  server.on(bOff, []() {
     // turn off device
     digitalWrite(control2Pin, LOW);
     updateValueB(LOW);
@@ -135,6 +144,7 @@ void setup() {
     // get device info
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"ip\":\"" + WiFi.localIP().toString() + "\"," +
+      "\"version\":\"" + VERSION + "\"," +
       "\"location\":\"" + LOCATION + "\"," +
       "\"hostname\":\"" + HOSTNAME + "\"," +
       "\"protocol\":\"http\"," +
@@ -150,34 +160,34 @@ void setup() {
       "}," +
       "\"api\":[" +
         "{" +
-          "\"label\": \"light-a\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/a/on\"," +
-          "\"path\": \"/on\"," +
-          "\"desc\": \"turn on kitchen light\"" +
+          "\"label\": \"" + labelA + "\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local" + aOn + "\"," +
+          "\"path\": \"" + aOn + "\"," +
+          "\"desc\": \"turn " + onState + " " + LOCATION + " " + labelA + "\"" +
         "}, " +
         "{" +
-          "\"label\": \"light-a\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/a/off\"," +
-          "\"path\": \"/off\"," +
-          "\"desc\": \"turn off kitchen light\"" +
+          "\"label\": \"" + labelA + "\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local" + aOff + "\"," +
+          "\"path\": \"" + aOff + "\"," +
+          "\"desc\": \"turn " + offState + " " + LOCATION + " " + labelA + "\"" +
         "}, " +
         "{" +
-          "\"label\": \"light-b\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/b/on\"," +
-          "\"path\": \"/on\"," +
-          "\"desc\": \"turn on kitchen light\"" +
+          "\"label\": \"" + labelB + "\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local" + bOn + "\"," +
+          "\"path\": \"" + bOn + "\"," +
+          "\"desc\": \"turn " + onState + " " + LOCATION + " " + labelB + "\"" +
         "}, " +
         "{" +
-          "\"label\": \"light-b\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/b/off\"," +
-          "\"path\": \"/off\"," +
-          "\"desc\": \"turn off kitchen light\"" +
+          "\"label\": \"" + labelB + "\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local" + bOff + "\"," +
+          "\"path\": \"" + bOff + "\"," +
+          "\"desc\": \"turn " + offState + " " + LOCATION + " " + labelB + "\"" +
         "}, " +
         "{" +
           "\"label\": \"info\"," +
           "\"fullPath\": \"http://" + HOSTNAME + ".local/info\"," +
           "\"path\": \"/info\"," +
-          "\"desc\": \"get info of this board\"" +
+          "\"desc\": \"get info of " + LOCATION + " board\"" +
         "}" +
       "]" +
     "}");
