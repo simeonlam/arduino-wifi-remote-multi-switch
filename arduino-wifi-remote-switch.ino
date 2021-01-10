@@ -12,9 +12,13 @@
 
 ESP8266WebServer server(PORT);
 
-int value = LOW;
-void updateValue(int val) {
-  value = val;
+int valueA = LOW;
+void updateValueA(int val) {
+  valueA = val;
+}
+int valueB = LOW;
+void updateValueB(int val) {
+  valueB = val;
 }
 
 // control 1 in D6 - GPIO12 ?
@@ -49,7 +53,7 @@ void setup() {
   }
   MDNS.addService(SERVICE_NAME, "tcp", PORT);
 
-  pinMode(ledPin, OUTPUT);
+  // pinMode(ledPin, OUTPUT);
   pinMode(control1Pin, OUTPUT);
   pinMode(control2Pin, OUTPUT);
 
@@ -95,34 +99,34 @@ void setup() {
     server.send(200, "text/json", "{\"status\":\"OK\"}");
   });
 
-  server.on("a/on", []() {
+  server.on("/a/on", []() {
     // turn on device
     digitalWrite(control1Pin, HIGH);
-    updateValue(HIGH);
+    updateValueA(HIGH);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
   });
 
-  server.on("a/off", []() {
+  server.on("/a/off", []() {
     // turn off device
     digitalWrite(control1Pin, LOW);
-    updateValue(LOW);
+    updateValueA(LOW);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
   });
 
-  server.on("b/on", []() {
+  server.on("/b/on", []() {
     // turn on device
     digitalWrite(control2Pin, HIGH);
-    updateValue(HIGH);
+    updateValueB(HIGH);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
   });
 
-  server.on("b/off", []() {
+  server.on("/b/off", []() {
     // turn off device
     digitalWrite(control2Pin, LOW);
-    updateValue(LOW);
+    updateValueB(LOW);
     server.sendHeader("Access-Control-Allow-Origin", "*");
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
   });
@@ -135,9 +139,13 @@ void setup() {
       "\"hostname\":\"" + HOSTNAME + "\"," +
       "\"protocol\":\"http\"," +
       "\"devices\":{" +
-        "\"light\":{" +
-          "\"led_port\":" + ledPin + "," +
-          "\"status\":" + value +
+        "\"lightA\":{" +
+          "\"led_port\":" + control1Pin + "," +
+          "\"status\":" + valueA +
+        "}," +
+        "\"lightB\":{" +
+          "\"led_port\":" + control2Pin + "," +
+          "\"status\":" + valueB +
         "}" +
       "}," +
       "\"api\":[" +
