@@ -36,6 +36,8 @@ char* aOn = "/light-a/on";
 char* aOff = "/light-a/off";
 char* bOn = "/light-b/on";
 char* bOff = "/light-b/off";
+char* aStatus = "/light-a/status";
+char* bStatus = "/light-b/status";
 
 void setup() {
   DebugBegin(115200);
@@ -124,6 +126,14 @@ void setup() {
     server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
   });
 
+  server.on(aStatus, []() {
+    server.send(200, "text", valueA == HIGH ? "1" : "0");
+  });
+
+  server.on(bStatus, []() {
+    server.send(200, "text", valueB == HIGH ? "1" : "0");
+  });
+
   server.on(bOn, []() {
     // turn on device
     digitalWrite(control2Pin, HIGH);
@@ -182,6 +192,18 @@ void setup() {
           "\"fullPath\": \"http://" + HOSTNAME + ".local" + bOff + "\"," +
           "\"path\": \"" + bOff + "\"," +
           "\"desc\": \"turn " + offState + " " + LOCATION + " " + labelB + "\"" +
+        "}, " +
+        "{" +
+          "\"label\": \"" + labelA + "\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local" + aStatus + "\"," +
+          "\"path\": \"" + aStatus + "\"," +
+          "\"desc\": \"Show status on " + LOCATION + " " + labelA + "\"" +
+        "}, " +
+        "{" +
+          "\"label\": \"" + labelB + "\"," +
+          "\"fullPath\": \"http://" + HOSTNAME + ".local" + bStatus + "\"," +
+          "\"path\": \"" + bStatus + "\"," +
+          "\"desc\": \"Show status on " + LOCATION + " " + labelB + "\"" +
         "}, " +
         "{" +
           "\"label\": \"info\"," +
