@@ -1,4 +1,4 @@
 
 #define LOCATION "test"
 
-#define HOSTNAME "test-v1"
+#define HOSTNAME "test"

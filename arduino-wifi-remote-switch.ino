@@ -13,13 +13,7 @@
 ESP8266WebServer server(PORT);
 
 int valueA = LOW;
-void updateValueA(int val) {
-  valueA = val;
-}
 int valueB = LOW;
-void updateValueB(int val) {
-  valueB = val;
-}
 
 // control 1 in D6 - GPIO12 ?
 // control 2 in D5 - GPIO14 ?
@@ -29,14 +23,100 @@ int control1Pin = 12;
 int control2Pin = 14;
 
 String labelA, labelB, onState, offState;
-// char* onState = "on";
-// char* offState = "off";
-char* aOn = "/light-a/on";
-char* aOff = "/light-a/off";
-char* bOn = "/light-b/on";
-char* bOff = "/light-b/off";
-char* aStatus = "/light-a/status";
-char* bStatus = "/light-b/status";
+String labels[2];
+String status[2];
+int labelLength = 2;
+int statusLength = 2;
+
+void setup() {
+  labelA = "light-a";
+  labelB = "light-b";
+  labels[0] = labelA;
+  labels[1] = labelB;
+
+  onState = "on";
+  offState = "off";
+  status[0] = onState;
+  status[1] = offState;
+
+  DebugBegin(115200);
+
+  connectWIFI();
+
+  setupOTA();
+
+  // pinMode(ledPin, OUTPUT);
+  pinMode(control1Pin, OUTPUT);
+  pinMode(control2Pin, OUTPUT);
+
+  // web handling
+
+  server.on("/", []() {
+    server.send(200, "text/json", "{\"status\":\"OK\"}");
+  });
+
+  server.on("/" + labelA + "/" + onState , []() {
+    actionLambda(control1Pin, valueA, HIGH);
+  });
+  server.on("/" + labelA + "/" + offState , []() {
+    actionLambda(control1Pin, valueA, LOW);
+  });
+
+  server.on("/" + labelB + "/" + onState , []() {
+    actionLambda(control2Pin, valueB, HIGH);
+  });
+  server.on("/" + labelB + "/" + offState , []() {
+    actionLambda(control2Pin, valueB, LOW);
+  });
+
+  server.on("/" + labelA + "/status", []() {
+    server.send(200, "text", valueToString(valueA));
+  });
+
+  server.on("/" + labelB + "/status", []() {
+    server.send(200, "text", valueToString(valueB));
+  });
+
+  server.on("/info", []() {
+    String apiStr = apisString();
+    // get device info
+    setHeader();
+    server.send(200, "text/json", "{\"ip\":\"" + WiFi.localIP().toString() + "\"," +
+      "\"version\":\"" + VERSION + "\"," +
+      "\"location\":\"" + LOCATION + "\"," +
+      "\"hostname\":\"" + HOSTNAME + "\"," +
+      "\"protocol\":\"http\"," +
+      "\"devices\":{" +
+        "\"lightA\":{" +
+          "\"led_port\":" + control1Pin + "," +
+          "\"status\":" + valueA +
+        "}," +
+        "\"lightB\":{" +
+          "\"led_port\":" + control2Pin + "," +
+          "\"status\":" + valueB +
+        "}" +
+      "}," +
+      "\"api\":[" +
+        apiStr +
+      "]" +
+    "}");
+  });
+
+  server.begin();
+  ArduinoOTA.begin();
+
+  DebugPrint("Open http://");
+  DebugPrint(WiFi.localIP());
+  DebugPrintln("/ in your browser to see it working");
+  DebugPrint(WiFi.hostname());
+}
+
+void loop() {
+  ArduinoOTA.handle();
+  server.handleClient();
+}
+
+// ---------------------------------------------------------
 
 void connectWIFI() {
   WiFi.hostname(HOSTNAME);      // DHCP Hostname (useful for finding device for static lease)
@@ -101,149 +181,60 @@ void setupOTA() {
   });
 }
 
+// utils
+
+void updateValue(int &value, int val) {
+  value = val;
+}
+
 String valueToString (int value) {
   return value == HIGH ? "1" : "0";
 }
 
-void setup() {
-  labelA = "light-a";
-  labelB = "light-b";
-  onState = "on";
-  offState = "off";
-  // aOn = "/" + labelA + "on";
-  DebugBegin(115200);
-
-  connectWIFI();
-
-  setupOTA();
-
-  // pinMode(ledPin, OUTPUT);
-  pinMode(control1Pin, OUTPUT);
-  pinMode(control2Pin, OUTPUT);
-
-  // web handling
-
-  server.on("/", []() {
-    server.send(200, "text/json", "{\"status\":\"OK\"}");
-  });
-
-  server.on(aOn, []() {
-    // turn on device
-    digitalWrite(control1Pin, HIGH);
-    updateValueA(HIGH);
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
-  });
-
-  server.on(aOff, []() {
-    // turn off device
-    digitalWrite(control1Pin, LOW);
-    updateValueA(LOW);
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
-  });
-
-  server.on(aStatus, []() {
-    server.send(200, "text", valueToString(valueA));
-  });
-
-  server.on(bStatus, []() {
-    server.send(200, "text", valueToString(valueB));
-  });
-
-  server.on(bOn, []() {
-    // turn on device
-    digitalWrite(control2Pin, HIGH);
-    updateValueB(HIGH);
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/json", "{\"updated\":\"success\",\"status\":1}");
-  });
-
-  server.on(bOff, []() {
-    // turn off device
-    digitalWrite(control2Pin, LOW);
-    updateValueB(LOW);
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/json", "{\"updated\":\"success\",\"status\":0}");
-  });
-
-  server.on("/info", []() {
-    // get device info
-    server.sendHeader("Access-Control-Allow-Origin", "*");
-    server.send(200, "text/json", "{\"ip\":\"" + WiFi.localIP().toString() + "\"," +
-      "\"version\":\"" + VERSION + "\"," +
-      "\"location\":\"" + LOCATION + "\"," +
-      "\"hostname\":\"" + HOSTNAME + "\"," +
-      "\"protocol\":\"http\"," +
-      "\"devices\":{" +
-        "\"lightA\":{" +
-          "\"led_port\":" + control1Pin + "," +
-          "\"status\":" + valueA +
-        "}," +
-        "\"lightB\":{" +
-          "\"led_port\":" + control2Pin + "," +
-          "\"status\":" + valueB +
-        "}" +
-      "}," +
-      "\"api\":[" +
-        "{" +
-          "\"label\": \"" + labelA + "\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local" + aOn + "\"," +
-          "\"path\": \"" + aOn + "\"," +
-          "\"desc\": \"turn " + onState + " " + LOCATION + " " + labelA + "\"" +
-        "}, " +
-        "{" +
-          "\"label\": \"" + labelA + "\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local" + aOff + "\"," +
-          "\"path\": \"" + aOff + "\"," +
-          "\"desc\": \"turn " + offState + " " + LOCATION + " " + labelA + "\"" +
-        "}, " +
-        "{" +
-          "\"label\": \"" + labelB + "\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local" + bOn + "\"," +
-          "\"path\": \"" + bOn + "\"," +
-          "\"desc\": \"turn " + onState + " " + LOCATION + " " + labelB + "\"" +
-        "}, " +
-        "{" +
-          "\"label\": \"" + labelB + "\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local" + bOff + "\"," +
-          "\"path\": \"" + bOff + "\"," +
-          "\"desc\": \"turn " + offState + " " + LOCATION + " " + labelB + "\"" +
-        "}, " +
-        "{" +
-          "\"label\": \"" + labelA + "\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local" + aStatus + "\"," +
-          "\"path\": \"" + aStatus + "\"," +
-          "\"desc\": \"Show status on " + LOCATION + " " + labelA + "\"" +
-        "}, " +
-        "{" +
-          "\"label\": \"" + labelB + "\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local" + bStatus + "\"," +
-          "\"path\": \"" + bStatus + "\"," +
-          "\"desc\": \"Show status on " + LOCATION + " " + labelB + "\"" +
-        "}, " +
-        "{" +
-          "\"label\": \"info\"," +
-          "\"fullPath\": \"http://" + HOSTNAME + ".local/info\"," +
-          "\"path\": \"/info\"," +
-          "\"desc\": \"get info of " + LOCATION + " board\"" +
-        "}" +
-      "]" +
-    "}");
-  });
-
-  server.begin();
-  ArduinoOTA.begin();
-
-  DebugPrint("Open http://");
-  DebugPrint(WiFi.localIP());
-  DebugPrintln("/ in your browser to see it working");
-  DebugPrint(WiFi.hostname());
+void setHeader() {
+  server.sendHeader("Access-Control-Allow-Origin", "*");
 }
 
-void loop() {
-  ArduinoOTA.handle();
-  server.handleClient();
+void actionLambda(int controlPin, int &value, int newValue) {
+  String strVal = newValue == HIGH ? "1" : "0";
+  digitalWrite(controlPin, newValue);
+  updateValue(value, newValue);
+  setHeader();
+  server.send(200, "text/json", "{\"updated\":\"success\",\"status\":" + strVal + ",\"pin\":" + controlPin + "}");
+}
+
+String apisString () {
+  String result;
+  String url = "http://" + (String)HOSTNAME + ".local";
+  result = "";
+  for (int i=0; i<labelLength; i++) {
+    String label = labels[i];
+    for (int j=0; j<statusLength; j++) {
+      String state = status[j];
+      String path = "/" + label + "/" + state;
+      result += "{" +
+        (String)"\"label\": \"" + label + "\"," +
+        "\"fullPath\": \"" + url + path + "\"," +
+        "\"path\": \"" + path + "\"," +
+        "\"desc\": \"turn " + state + " " + LOCATION + " " + label + "\"" +
+      "}, ";
+    }
+    String statusPath = "/" + label + "/status";
+    result += "{" +
+        (String)"\"label\": \"" + label + "\"," +
+        "\"fullPath\": \"" + url + statusPath + "\"," +
+        "\"path\": \"" + statusPath + "\"," +
+        "\"desc\": \"Show status on " + LOCATION + " " + label + "\"" +
+      "}, ";
+  }
+
+  result += "{" +
+    (String)"\"label\": \"info\"," +
+    "\"fullPath\": \"" + url + "/info\"," +
+    "\"path\": \"/info\"," +
+    "\"desc\": \"get info of " + LOCATION + " board\"" +
+  "}";
+  return result;
 }
 
 // collect header example
