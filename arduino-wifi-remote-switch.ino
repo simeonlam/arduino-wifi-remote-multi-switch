@@ -28,10 +28,9 @@ void updateValueB(int val) {
 int control1Pin = 12;
 int control2Pin = 14;
 
-char* labelA = "light-a";
-char* labelB = "light-b";
-char* onState = "on";
-char* offState = "off";
+String labelA, labelB, onState, offState;
+// char* onState = "on";
+// char* offState = "off";
 char* aOn = "/light-a/on";
 char* aOff = "/light-a/off";
 char* bOn = "/light-b/on";
@@ -39,8 +38,7 @@ char* bOff = "/light-b/off";
 char* aStatus = "/light-a/status";
 char* bStatus = "/light-b/status";
 
-void setup() {
-  DebugBegin(115200);
+void connectWIFI() {
   WiFi.hostname(HOSTNAME);      // DHCP Hostname (useful for finding device for static lease)
   WiFi.mode(WIFI_STA);
   WiFi.begin(WiFi_SSID, WiFi_Password);
@@ -63,11 +61,9 @@ void setup() {
     DebugPrintln("Error setting up MDNS responder!");
   }
   MDNS.addService(SERVICE_NAME, "tcp", PORT);
+}
 
-  // pinMode(ledPin, OUTPUT);
-  pinMode(control1Pin, OUTPUT);
-  pinMode(control2Pin, OUTPUT);
-
+void setupOTA() {
   // ota handling
 
   ArduinoOTA.onStart([]() {
@@ -103,6 +99,27 @@ void setup() {
       DebugPrintln("End Failed");
     }
   });
+}
+
+String valueToString (int value) {
+  return value == HIGH ? "1" : "0";
+}
+
+void setup() {
+  labelA = "light-a";
+  labelB = "light-b";
+  onState = "on";
+  offState = "off";
+  // aOn = "/" + labelA + "on";
+  DebugBegin(115200);
+
+  connectWIFI();
+
+  setupOTA();
+
+  // pinMode(ledPin, OUTPUT);
+  pinMode(control1Pin, OUTPUT);
+  pinMode(control2Pin, OUTPUT);
 
   // web handling
 
@@ -127,11 +144,11 @@ void setup() {
   });
 
   server.on(aStatus, []() {
-    server.send(200, "text", valueA == HIGH ? "1" : "0");
+    server.send(200, "text", valueToString(valueA));
   });
 
   server.on(bStatus, []() {
-    server.send(200, "text", valueB == HIGH ? "1" : "0");
+    server.send(200, "text", valueToString(valueB));
   });
 
   server.on(bOn, []() {
