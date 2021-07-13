@@ -29,8 +29,8 @@ int labelLength = 2;
 int statusLength = 2;
 
 void setup() {
-  labelA = "light-a";
-  labelB = "light-b";
+  labelA = "white";
+  labelB = "yellow";
   labels[0] = labelA;
   labels[1] = labelB;
 
