@@ -56,17 +56,17 @@ void setup() {
   });
 
   server.on("/" + labelA + "/" + onState , []() {
-    actionLambda(control1Pin, valueA, HIGH);
+    actionLambda(control1Pin, valueA, LOW);
   });
   server.on("/" + labelA + "/" + offState , []() {
-    actionLambda(control1Pin, valueA, LOW);
+    actionLambda(control1Pin, valueA, HIGH);
   });
 
   server.on("/" + labelB + "/" + onState , []() {
-    actionLambda(control2Pin, valueB, HIGH);
+    actionLambda(control2Pin, valueB, LOW);
   });
   server.on("/" + labelB + "/" + offState , []() {
-    actionLambda(control2Pin, valueB, LOW);
+    actionLambda(control2Pin, valueB, HIGH);
   });
 
   server.on("/" + labelA + "/status", []() {
@@ -188,7 +188,7 @@ void updateValue(int &value, int val) {
 }
 
 String valueToString (int value) {
-  return value == HIGH ? "1" : "0";
+  return value == LOW ? "1" : "0";
 }
 
 void setHeader() {

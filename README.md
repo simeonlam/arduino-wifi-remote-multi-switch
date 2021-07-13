@@ -29,3 +29,14 @@ arduino-cli compile -b esp8266:esp8266:huzzah -u -p /dev/tty.SLAB_USBtoUART
 arduino-cli compile --fqbn esp8266:esp8266:huzzah --upload --port /dev/tty.SLAB_USBtoUART
 arduino-cli compile --fqbn esp8266:esp8266:huzzah --upload --port 192.168.1.xxx
 ```
+
+
+### config
+- default LOW at init
+
+- master room
+  - HIGH to open
+- kithen
+  - HIGH to open
+- living room
+  - LOW to open
