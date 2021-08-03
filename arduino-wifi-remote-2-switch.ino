@@ -87,11 +87,11 @@ void setup() {
       "\"hostname\":\"" + HOSTNAME + "\"," +
       "\"protocol\":\"http\"," +
       "\"devices\":{" +
-        "\"lightA\":{" +
+        "\"" + labelA + "\":{" +
           "\"led_port\":" + control1Pin + "," +
           "\"status\":" + valueA +
         "}," +
-        "\"lightB\":{" +
+        "\"" + labelB + "\":{" +
           "\"led_port\":" + control2Pin + "," +
           "\"status\":" + valueB +
         "}" +
