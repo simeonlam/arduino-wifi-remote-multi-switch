@@ -1,3 +1,50 @@
+#include <Arduino.h>
+#include <IRremoteESP8266.h>
+#include <IRsend.h>
+#include <ir_Panasonic.h>
+
+const uint16_t kIrLed = 4;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
+IRPanasonicAc ac(kIrLed);  // Set the GPIO used for sending messages.
+
+void printState() {
+  // Display the settings.
+  Serial.println("Panasonic A/C remote is in the following state:");
+  Serial.printf("  %s\n", ac.toString().c_str());
+  // Display the encoded IR sequence.
+  unsigned char* ir_code = ac.getRaw();
+  Serial.print("IR Code: 0x");
+  for (uint8_t i = 0; i < kPanasonicAcStateLength; i++)
+    Serial.printf("%02X", ir_code[i]);
+  Serial.println();
+}
+
+String acState () {
+  String result;
+
+  return ac.toString();
+}
+
+void initAC() {
+  ac.begin();
+  Serial.begin(115200);
+  delay(200);
+
+  // Set up what we want to send. See ir_Panasonic.cpp for all the options.
+  Serial.println("Default state of the remote.");
+  printState();
+  Serial.println("Setting desired state for A/C.");
+  ac.setModel(kPanasonicRkr);
+  ac.on();
+  ac.setFan(kPanasonicAcFanAuto);
+  ac.setMode(kPanasonicAcCool);
+  ac.setTemp(24);
+  ac.setSwingVertical(kPanasonicAcSwingVAuto);
+}
+
+void sendIR() {
+  ac.send();
+}
+
 #include <ESP8266WiFi.h>
 #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
@@ -45,6 +92,8 @@ void setup() {
 
   setupOTA();
 
+  initAC();
+
   // pinMode(ledPin, OUTPUT);
   pinMode(control1Pin, OUTPUT);
   pinMode(control2Pin, OUTPUT);
@@ -67,6 +116,22 @@ void setup() {
   });
   server.on("/" + labelB + "/" + offState , []() {
     actionLambda(control2Pin, valueB, HIGH);
+  });
+
+  server.on("/ac/status", []() {
+    server.send(200, "text", ac.toString());
+  });
+
+  server.on("/ac/on", []() {
+    ac.on();
+    sendIR();
+    server.send(200, "text", "sent on signal");
+  });
+
+  server.on("/ac/off", []() {
+    ac.off();
+    sendIR();
+    server.send(200, "text", "sent off signal");
   });
 
   server.on("/" + labelA + "/status", []() {
