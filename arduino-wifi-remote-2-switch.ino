@@ -1,54 +1,75 @@
-#include <Arduino.h>
-#include <IRremoteESP8266.h>
-#include <IRsend.h>
-#include <ir_Panasonic.h>
+// #include <Arduino.h>
+// #include <IRremoteESP8266.h>
+// #include <IRsend.h>
+// #include <ir_Panasonic.h>
 
-const uint16_t kIrLed = 4;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
-IRPanasonicAc ac(kIrLed);  // Set the GPIO used for sending messages.
+// const uint16_t kIrLed = 4;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
+// IRPanasonicAc ac(kIrLed);  // Set the GPIO used for sending messages.
 
-void printState() {
-  // Display the settings.
-  Serial.println("Panasonic A/C remote is in the following state:");
-  Serial.printf("  %s\n", ac.toString().c_str());
-  // Display the encoded IR sequence.
-  unsigned char* ir_code = ac.getRaw();
-  Serial.print("IR Code: 0x");
-  for (uint8_t i = 0; i < kPanasonicAcStateLength; i++)
-    Serial.printf("%02X", ir_code[i]);
-  Serial.println();
-}
+// void printState() {
+//   // Display the settings.
+//   Serial.println("Panasonic A/C remote is in the following state:");
+//   Serial.printf("  %s\n", ac.toString().c_str());
+//   // Display the encoded IR sequence.
+//   unsigned char* ir_code = ac.getRaw();
+//   Serial.print("IR Code: 0x");
+//   for (uint8_t i = 0; i < kPanasonicAcStateLength; i++)
+//     Serial.printf("%02X", ir_code[i]);
+//   Serial.println();
+// }
 
-String acState () {
-  String result;
+// String acState () {
+//   String result;
 
-  return ac.toString();
-}
+//   return ac.toString();
+// }
 
-void initAC() {
-  ac.begin();
-  Serial.begin(115200);
-  delay(200);
+// void initAC() {
+//   ac.begin();
+//   Serial.begin(115200);
+//   delay(200);
 
-  // Set up what we want to send. See ir_Panasonic.cpp for all the options.
-  Serial.println("Default state of the remote.");
-  printState();
-  Serial.println("Setting desired state for A/C.");
-  ac.setModel(kPanasonicRkr);
-  ac.on();
-  ac.setFan(kPanasonicAcFanAuto);
-  ac.setMode(kPanasonicAcCool);
-  ac.setTemp(24);
-  ac.setSwingVertical(kPanasonicAcSwingVAuto);
-}
+//   // Set up what we want to send. See ir_Panasonic.cpp for all the options.
+//   Serial.println("Default state of the remote.");
+//   printState();
+//   Serial.println("Setting desired state for A/C.");
+//   ac.setModel(kPanasonicRkr);
+//   ac.on();
+//   ac.setFan(kPanasonicAcFanAuto);
+//   ac.setMode(kPanasonicAcCool);
+//   ac.setTemp(24);
+//   ac.setSwingVertical(kPanasonicAcSwingVAuto);
+// }
 
-void sendIR() {
-  ac.send();
-}
+// void sendIR() {
+//   ac.send();
+// }
+
+// --------------------------
+// AC
 
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
+#include <DNSServer.h>            // Local DNS Server used for redirecting all requests to the configuration portal
+#include <ESP8266WebServer.h>     // Local WebServer used to serve the configuration portal
+#include <WiFiManager.h>          // https://github.com/tzapu/WiFiManager WiFi Configuration Magic
+#include <ESP8266mDNS.h>          // MDNS server used for auto discovery
+#include <ArduinoJson.h>          // https://github.com/bblanchon/ArduinoJson
+
+#include "Ac.h"
+#include "settings.h"
+
+Ac ac;
+
+unsigned long loopLastRun;
+
+// --------------------------
+
+// 2 light switch
+
+// #include <ESP8266WiFi.h>
+// #include <ESP8266mDNS.h>
 #include <ArduinoOTA.h>
-#include <ESP8266WebServer.h>
+// #include <ESP8266WebServer.h>
 #include "config.h"
 #include "config-name.h"
 
@@ -86,13 +107,21 @@ void setup() {
   status[0] = onState;
   status[1] = offState;
 
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // turn LED on at boot
+  digitalWrite(LED_BUILTIN, LOW);
+
   DebugBegin(115200);
 
   connectWIFI();
 
   setupOTA();
 
-  initAC();
+  ac.begin();
+  digitalWrite(LED_BUILTIN, HIGH);
+
+  // initAC();
 
   // pinMode(ledPin, OUTPUT);
   pinMode(control1Pin, OUTPUT);
@@ -118,21 +147,21 @@ void setup() {
     actionLambda(control2Pin, valueB, HIGH);
   });
 
-  server.on("/ac/status", []() {
-    server.send(200, "text", ac.toString());
-  });
-
-  server.on("/ac/on", []() {
-    ac.on();
-    sendIR();
-    server.send(200, "text", "sent on signal");
-  });
-
-  server.on("/ac/off", []() {
-    ac.off();
-    sendIR();
-    server.send(200, "text", "sent off signal");
-  });
+//  server.on("/ac/status", []() {
+//    server.send(200, "text", ac.toString());
+//  });
+//
+//  server.on("/ac/on", []() {
+//    ac.on();
+//    sendIR();
+//    server.send(200, "text", "sent on signal");
+//  });
+//
+//  server.on("/ac/off", []() {
+//    ac.off();
+//    sendIR();
+//    server.send(200, "text", "sent off signal");
+//  });
 
   server.on("/" + labelA + "/status", []() {
     server.send(200, "text", valueToString(valueA));
@@ -179,6 +208,8 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   server.handleClient();
+  ac.loop();
+  MDNS.update();
 }
 
 // ---------------------------------------------------------
@@ -206,6 +237,11 @@ void connectWIFI() {
     DebugPrintln("Error setting up MDNS responder!");
   }
   MDNS.addService(SERVICE_NAME, "tcp", PORT);
+
+  // AC use
+  MDNS.addService("oznu-platform", "tcp", 81);
+  MDNS.addServiceTxt("oznu-platform", "tcp", "type", "daikin-thermostat");
+  MDNS.addServiceTxt("oznu-platform", "tcp", "mac", WiFi.macAddress());
 }
 
 void setupOTA() {
