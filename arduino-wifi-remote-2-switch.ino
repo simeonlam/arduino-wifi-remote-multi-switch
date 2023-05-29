@@ -1,52 +1,3 @@
-// #include <Arduino.h>
-// #include <IRremoteESP8266.h>
-// #include <IRsend.h>
-// #include <ir_Panasonic.h>
-
-// const uint16_t kIrLed = 4;  // ESP8266 GPIO pin to use. Recommended: 4 (D2).
-// IRPanasonicAc ac(kIrLed);  // Set the GPIO used for sending messages.
-
-// void printState() {
-//   // Display the settings.
-//   Serial.println("Panasonic A/C remote is in the following state:");
-//   Serial.printf("  %s\n", ac.toString().c_str());
-//   // Display the encoded IR sequence.
-//   unsigned char* ir_code = ac.getRaw();
-//   Serial.print("IR Code: 0x");
-//   for (uint8_t i = 0; i < kPanasonicAcStateLength; i++)
-//     Serial.printf("%02X", ir_code[i]);
-//   Serial.println();
-// }
-
-// String acState () {
-//   String result;
-
-//   return ac.toString();
-// }
-
-// void initAC() {
-//   ac.begin();
-//   Serial.begin(115200);
-//   delay(200);
-
-//   // Set up what we want to send. See ir_Panasonic.cpp for all the options.
-//   Serial.println("Default state of the remote.");
-//   printState();
-//   Serial.println("Setting desired state for A/C.");
-//   ac.setModel(kPanasonicRkr);
-//   ac.on();
-//   ac.setFan(kPanasonicAcFanAuto);
-//   ac.setMode(kPanasonicAcCool);
-//   ac.setTemp(24);
-//   ac.setSwingVertical(kPanasonicAcSwingVAuto);
-// }
-
-// void sendIR() {
-//   ac.send();
-// }
-
-// --------------------------
-// AC
 
 #include <ESP8266WiFi.h>
 #include <DNSServer.h>            // Local DNS Server used for redirecting all requests to the configuration portal
@@ -60,7 +11,7 @@
 
 Ac ac;
 
-unsigned long loopLastRun;
+// unsigned long loopLastRun;
 
 // --------------------------
 
@@ -118,7 +69,10 @@ void setup() {
 
   setupOTA();
 
-  ac.begin();
+  if (IS_AC_CONFIG){
+    ac.begin();
+  }
+
   digitalWrite(LED_BUILTIN, HIGH);
 
   // initAC();
@@ -147,22 +101,6 @@ void setup() {
     actionLambda(control2Pin, valueB, HIGH);
   });
 
-//  server.on("/ac/status", []() {
-//    server.send(200, "text", ac.toString());
-//  });
-//
-//  server.on("/ac/on", []() {
-//    ac.on();
-//    sendIR();
-//    server.send(200, "text", "sent on signal");
-//  });
-//
-//  server.on("/ac/off", []() {
-//    ac.off();
-//    sendIR();
-//    server.send(200, "text", "sent off signal");
-//  });
-
   server.on("/" + labelA + "/status", []() {
     server.send(200, "text", valueToString(valueA));
   });
@@ -179,6 +117,8 @@ void setup() {
       "\"version\":\"" + VERSION + "\"," +
       "\"location\":\"" + LOCATION + "\"," +
       "\"hostname\":\"" + HOSTNAME + "\"," +
+      "\"macaddress\":\"" + WiFi.macAddress() + "\"," +
+      "\"is ac\":\"" + IS_AC_CONFIG + "\"," +
       "\"protocol\":\"http\"," +
       "\"devices\":{" +
         "\"" + labelA + "\":{" +
@@ -208,7 +148,10 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
   server.handleClient();
-  ac.loop();
+  if (IS_AC_CONFIG) {
+    ac.loop();
+  }
+
   MDNS.update();
 }
 
@@ -218,6 +161,17 @@ void connectWIFI() {
   WiFi.hostname(HOSTNAME);      // DHCP Hostname (useful for finding device for static lease)
   WiFi.mode(WIFI_STA);
   WiFi.begin(WiFi_SSID, WiFi_Password);
+
+  // Set your Static IP address
+  IPAddress local_IP(192, 168, 1, IP_LAST);
+  // Set your Gateway IP address
+  IPAddress gateway(192, 168, 1, 1);
+  IPAddress subnet(255, 255, 255, 0);
+
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("STA Failed to configure");
+  }
+
   while(WiFi.status() != WL_CONNECTED){
 		/*Note: if connection is established, and then lost for some reason, ESP will automatically reconnect. This will be done automatically by Wi-Fi library, without any user intervention.*/
 		delay(1000);
@@ -238,10 +192,13 @@ void connectWIFI() {
   }
   MDNS.addService(SERVICE_NAME, "tcp", PORT);
 
-  // AC use
-  MDNS.addService("oznu-platform", "tcp", 81);
-  MDNS.addServiceTxt("oznu-platform", "tcp", "type", "daikin-thermostat");
-  MDNS.addServiceTxt("oznu-platform", "tcp", "mac", WiFi.macAddress());
+  if (IS_AC_CONFIG){
+    // AC use
+    MDNS.addService("oznu-platform", "tcp", 81);
+    MDNS.addServiceTxt("oznu-platform", "tcp", "type", "daikin-thermostat");
+    MDNS.addServiceTxt("oznu-platform", "tcp", "mac", WiFi.macAddress());
+    MDNS.addServiceTxt("oznu-platform", "tcp", "name", HOSTNAME);
+  }
 }
 
 void setupOTA() {
