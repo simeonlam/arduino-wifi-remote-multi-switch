@@ -1,3 +1,4 @@
+// copy this to config.h
 
 #define WiFi_SSID "SSID"
 #define WiFi_Password  "PW"

@@ -151,7 +151,6 @@ void loop() {
   if (IS_AC_CONFIG) {
     ac.loop();
   }
-
   MDNS.update();
 }
 
@@ -168,8 +167,11 @@ void connectWIFI() {
   IPAddress gateway(192, 168, 1, 1);
   IPAddress subnet(255, 255, 255, 0);
 
-  if (!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("STA Failed to configure");
+  if (WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("Static IP Configured");
+  }
+  else {
+    Serial.println("Static IP Configuration Failed");
   }
 
   while(WiFi.status() != WL_CONNECTED){
@@ -192,7 +194,7 @@ void connectWIFI() {
   }
   MDNS.addService(SERVICE_NAME, "tcp", PORT);
 
-  if (IS_AC_CONFIG){
+  if (IS_AC_CONFIG) {
     // AC use
     MDNS.addService("oznu-platform", "tcp", 81);
     MDNS.addServiceTxt("oznu-platform", "tcp", "type", "daikin-thermostat");

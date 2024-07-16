@@ -1,12 +1,11 @@
 
-#define LOCATION "master-room"
 
-#define HOSTNAME "master-room"
+#define LOCATION "toilet"
 
-#define IP_LAST 203
+#define HOSTNAME "toilet"
 
-#define IS_AC_CONFIG true
+#define IS_AC_CONFIG false
 
-#define VERSION "2023-05-29.0132"
+#define IP_LAST 205
 
-// 192.168.1.203
+#define VERSION "2024-07-16.2355"
